@@ -1,0 +1,59 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  events    Event[]
+  requestsAsRequester SwapRequest[] @relation("Requester")
+  requestsAsResponder SwapRequest[] @relation("Responder")
+  createdAt DateTime @default(now())
+}
+
+enum EventStatus {
+  BUSY
+  SWAPPABLE
+  SWAP_PENDING
+}
+
+model Event {
+  id        String      @id @default(cuid())
+  title     String
+  startTime DateTime
+  endTime   DateTime
+  status    EventStatus @default(BUSY)
+  owner     User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId   String
+  mySlotRequests SwapRequest[] @relation("MySlot")
+  theirSlotRequests SwapRequest[] @relation("TheirSlot")
+  createdAt DateTime    @default(now())
+}
+
+enum SwapStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model SwapRequest {
+  id          String     @id @default(cuid())
+  requester   User       @relation("Requester", fields: [requesterId], references: [id], onDelete: Cascade)
+  requesterId String
+  responder   User       @relation("Responder", fields: [responderId], references: [id], onDelete: Cascade)
+  responderId String
+  mySlot      Event      @relation("MySlot", fields: [mySlotId], references: [id], onDelete: Cascade)
+  mySlotId    String
+  theirSlot   Event      @relation("TheirSlot", fields: [theirSlotId], references: [id], onDelete: Cascade)
+  theirSlotId String
+  status      SwapStatus @default(PENDING)
+  createdAt   DateTime   @default(now())
+  respondedAt DateTime?
+}
